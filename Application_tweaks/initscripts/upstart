@@ -1,0 +1,11 @@
+description "Rizzoma"
+
+start on (local-filesystems and net-device-up IFACE=eth0)
+stop on shutdown
+
+chdir /srv
+
+script
+    cd /srv
+    ./app.js 2>&1 >> /var/log/rizzoma.log
+end script

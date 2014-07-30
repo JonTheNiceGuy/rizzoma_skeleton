@@ -1,0 +1,12 @@
+[submodule "Puppet/modules/puppetlabs-stdlib"]
+	path = Puppet/modules/stdlib
+	url = https://github.com/puppetlabs/puppetlabs-stdlib.git
+[submodule "Puppet/modules/puppetlabs-apt"]
+	path = Puppet/modules/apt
+	url = https://github.com/puppetlabs/puppetlabs-apt.git
+[submodule "Puppet/modules/puppetlabs-nodejs"]
+	path = Puppet/modules/nodejs
+	url = https://github.com/puppetlabs/puppetlabs-nodejs
+[submodule "Application"]
+	path = Application
+	url = https://github.com/rizzoma/rizzoma.git

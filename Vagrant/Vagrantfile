@@ -1,0 +1,33 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
+VAGRANTFILE_API_VERSION = "2"
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  config.vm.hostname = "rizzoma.lan"
+  config.vm.box = "ubuntu/trusty32"
+  config.vm.network "public_network"
+  config.vm.synced_folder "../Application", "/srv"
+  config.vm.synced_folder "../Application_tweaks/initscripts", "/srv/initscripts"
+  config.vm.provision "puppet" do |puppet|
+    puppet.manifests_path = "../Puppet/manifests"
+    puppet.module_path    = "../Puppet/modules"
+    puppet.manifest_file  = "site.pp"
+  end
+
+  # Enable caching
+  # Install with
+  #   vagrant plugin install vagrant-cachier
+  if Vagrant.has_plugin?("vagrant-cachier")
+    config.vm.network "private_network", ip: "192.0.2.10"
+    config.cache.scope = :box
+    # Comment this next section out if you don't have nfs-kernel-server
+    # installed on Ubuntu/Debian variants
+    config.cache.synced_folder_opts = {
+      type: :nfs,
+      mount_options: ['rw', 'vers=3', 'tcp', 'nolock']
+    }
+  end
+
+end
