@@ -5,13 +5,13 @@ This set of scripts builds on the [Rizzoma Collaboration Platform](https://githu
 
 ## Getting started
 
-** Requirements **
+**Requirements**
 
 * [Vagrant](http://vagrantup.com)
 * [Virtualbox](https://www.virtualbox.org/)
 * git
 
-** Run **
+**Run**
 
     git clone
     git submodule update --init
