@@ -1,16 +1,16 @@
 Exec { path => [ "/bin/", "/sbin/" , "/usr/bin/", "/usr/sbin/" ] }
 
+class { 'apt':
+  always_apt_update => true,
+}
+
 exec { 'apt-get update':
   command => 'apt-get update',
   timeout => 60,
   tries   => 3
 }
 
-class { 'apt':
-  always_apt_update => true,
-}
-
-$requiredPackages = [
+$requiredpackages = [
   'couchdb',
   'rabbitmq-server',
   'sphinxsearch',
@@ -19,9 +19,28 @@ $requiredPackages = [
   'libicu-dev'
 ]
 
-package { $requiredPackages :
+
+package { $requiredpackages :
   ensure  => "installed",
   require => Exec['apt-get update']
+}
+
+$rubyrequiredpackages = [
+  'build-essential',
+  'g++',
+  'libsqlite3-dev',
+  'ruby-dev'
+]
+
+package { $rubyrequiredpackages :
+  ensure  => "installed",
+  require => Exec['apt-get update']
+}
+
+package { "mailcatcher" :
+  ensure  => "installed",
+  provider => "gem",
+  require => Package['build-essential','g++','libsqlite3-dev','ruby-dev']
 }
 
 include nodejs
@@ -32,25 +51,25 @@ file { '/usr/bin/node' :
   require => Package['nodejs']
 }
 
-file { "/srv/src/server/settings_local.coffee":
-    replace => "no",
-    ensure  => "present",
-    source  => "/srv/src/server/settings_local.coffee.template",
-    mode    => 644,
-}
-
-# firet run only? also cwd not working :(
-exec { "/srv/node_modules/.bin/cake build-server build-client" :
-    cwd => "/srv",
-    require => File['/usr/bin/node']
-}
-
 # This next batch relies on Upstart - this will need to be changed to
 # SystemD when 14.10 drops.
 file { '/etc/init/rizzoma.conf':
   ensure => present,
-  source => '/srv/initscripts/upstart',
+  source => '/srv/initscripts/rizzoma.upstart',
   require => Package['nodejs'],
+  owner  => 'root',
+  group  => 'root'
+}
+
+file { '/etc/init.d/mailcatcher':
+  ensure => link,
+  target => '/lib/init/upstart-job',
+}
+
+file { '/etc/init/mailcatcher.conf':
+  ensure => present,
+  source => '/srv/initscripts/mailcatcher.upstart',
+  require => Package['mailcatcher'],
   owner  => 'root',
   group  => 'root'
 }
@@ -81,40 +100,52 @@ file_line { "start sphinx" :
   require => Package['sphinxsearch']
 }
 
-file_line { "set rizzoma port" :
-  path => "/srv/src/server/settings.coffee",
-  line => "        listenPort: 80",
-  match => "^        listenPort:"
+file { "/srv/src/server/settings_local.coffee":
+    replace => "no",
+    ensure  => "present",
+    source  => "/srv/src/server/settings_local.coffee.template",
+    mode    => 644,
 }
 
-file_line { "set owner email address" :
-  path => "/srv/src/server/settings.coffee",
-  line => "            ownerUserEmail: 'owner@${fqdn}'",
-  match => "^            ownerUserEmail:",
-  require => File_line['set rizzoma port'],
-  notify => Service['rizzoma']
+file_line { "set rizzoma port" :
+  path => "/srv/src/server/settings_local.coffee",
+  line => "\nsettings.dev.app.listenPort = 80",
+  ensure => present,
+  require => File["/srv/src/server/settings_local.coffee"]
 }
 
 file_line { "set support email address" :
-  path => "/srv/src/server/settings.coffee",
-  line => "    supportEmail: 'support@${fqdn}'",
-  match => "^    supportEmail:",
-  require => File_line['set rizzoma port'],
-  notify => Service['rizzoma']
+  path => "/srv/src/server/settings_local.coffee",
+  line => "\nsettings.dev.supportEmail = 'support@${fqdn}'",
+  ensure => present,
+  require => File["/srv/src/server/settings_local.coffee"]
 }
 
 file_line { "set rizzoma hostname" :
-  path => "/srv/src/server/settings.coffee",
-  line => "    baseUrl: 'http://${fqdn}'",
-  match => "^    baseUrl:",
-  require => File_line['set rizzoma port'],
-  notify => Service['rizzoma']
+  path => "/srv/src/server/settings_local.coffee",
+  line => "\nsettings.dev.baseUrl = 'http://${fqdn}'",
+  ensure => present,
+  require => File["/srv/src/server/settings_local.coffee"]
+}
+
+file_line { "Set SMTP services" :
+  path => "/srv/src/server/settings_local.coffee",
+  line => "\nsettings.dev.notification.transport.smtp = {}\nsettings.dev.notification.transport.smtp.host = 'localhost'\nsettings.dev.notification.transport.smtp.port = 1025\nsettings.dev.notification.transport.smtp.from = 'rizzoma@site.com'\nsettings.dev.notification.transport.smtp.fromName = 'Rizzoma Agent'",
+  ensure => present,
+  require => File["/srv/src/server/settings_local.coffee"]
+}
+
+file_line { "Ensure config is loaded" :
+  path => "/srv/src/server/settings_local.coffee",
+  line => "\nmodule.exports = settings",
+  ensure => present,
+  require => [File["/srv/src/server/settings_local.coffee"],File_line['Set SMTP services',"set rizzoma port",'set rizzoma hostname',"set support email address"]]
 }
 
 service { 'rizzoma':
   ensure => running,
   provider => 'upstart',
-  require => File['/etc/init.d/rizzoma', '/etc/init/rizzoma.conf'],
+  require => [File['/etc/init.d/rizzoma', '/etc/init/rizzoma.conf'],File_line['Set SMTP services',"set rizzoma port",'set rizzoma hostname',"set support email address", "Ensure config is loaded"]]
 }
 
 service { 'sphinxsearch':
@@ -122,3 +153,11 @@ service { 'sphinxsearch':
   require => File_line['start sphinx'],
   notify => Service['rizzoma']
 }
+
+service { 'mailcatcher':
+  ensure => running,
+  provider => 'upstart',
+  require => File['/etc/init.d/mailcatcher', '/etc/init/mailcatcher.conf']
+}
+
+warning("Please visit http://$fqdn to visit the Rizzoma Service and http://$fqdn:1080 for the mailcatcher service")

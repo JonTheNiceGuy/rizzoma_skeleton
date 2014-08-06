@@ -14,6 +14,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     puppet.manifests_path = "../Puppet/manifests"
     puppet.module_path    = "../Puppet/modules"
     puppet.manifest_file  = "site.pp"
+    # This line found thanks to this: http://stackoverflow.com/a/23502693/5738
+    puppet.facter = {
+      # Specifying the LANG environment variable this way is a work around.  
+      # The work around can be removed when this issue is fixed https://github.com/mitchellh/vagrant/issues/2270
+      "hack=hack LANG=en_US.UTF-8 hack" => "hack"
+    }
   end
 
   # Enable caching

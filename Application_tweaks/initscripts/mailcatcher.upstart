@@ -1,4 +1,4 @@
-description "Rizzoma"
+description "mailcatcher"
 
 start on (local-filesystems and net-device-up IFACE=eth0)
 stop on shutdown
@@ -6,6 +6,5 @@ stop on shutdown
 chdir /srv
 
 script
-    cd /srv
-    ./app.js 2>&1 >> /var/log/rizzoma.log
+    /usr/local/bin/mailcatcher --ip 0.0.0.0
 end script
