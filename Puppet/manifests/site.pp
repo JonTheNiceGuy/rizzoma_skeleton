@@ -167,7 +167,7 @@ warning("Please visit http://$fqdn to visit the Rizzoma Service and http://$fqdn
 exec { 'Checkout the Rizzoma master branch':
   command => 'git checkout master',
   cwd     => '/all_code/Application',
-  timeout => 60,
+  timeout => 600,
   tries   => 3,
   require => Package['git']
 }
@@ -175,7 +175,7 @@ exec { 'Checkout the Rizzoma master branch':
 exec { 'Pull the latest Rizzoma updates':
   command => 'git pull',
   cwd     => '/all_code/Application',
-  timeout => 60,
+  timeout => 600,
   tries   => 3,
   require => Exec['Checkout the Rizzoma master branch']
 }
