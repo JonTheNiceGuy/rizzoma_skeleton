@@ -16,7 +16,8 @@ $requiredpackages = [
   'sphinxsearch',
   'redis-server',
   'imagemagick',
-  'libicu-dev'
+  'libicu-dev',
+  'git'
 ]
 
 
@@ -80,10 +81,10 @@ file { '/etc/init.d/rizzoma':
 }
 
 file { "/etc/sphinxsearch/sphinx.conf":
-    ensure  => "present",
-    source  => "/srv/etc/sphinxsearch/sphinx.conf",
-    mode    => 644,
-    require => Package['sphinxsearch']
+  ensure  => "present",
+  source  => "/srv/etc/sphinxsearch/sphinx.conf",
+  mode    => 644,
+  require => Package['sphinxsearch']
 }
 
 file_line { "sphinx project dir" :
@@ -101,10 +102,11 @@ file_line { "start sphinx" :
 }
 
 file { "/srv/src/server/settings_local.coffee":
-    replace => "no",
-    ensure  => "present",
-    source  => "/srv/src/server/settings_local.coffee.template",
-    mode    => 644,
+  replace => "no",
+  ensure  => "present",
+  source  => "/srv/src/server/settings_local.coffee.template",
+  mode    => 644,
+  require => Exec['Pull the latest Rizzoma updates']
 }
 
 file_line { "set rizzoma port" :
@@ -161,3 +163,20 @@ service { 'mailcatcher':
 }
 
 warning("Please visit http://$fqdn to visit the Rizzoma Service and http://$fqdn:1080 for the mailcatcher service")
+
+exec { 'Checkout the Rizzoma master branch':
+  command => 'git checkout master',
+  cwd     => '/all_code/Application',
+  timeout => 60,
+  tries   => 3,
+  require => Package['git']
+}
+
+exec { 'Pull the latest Rizzoma updates':
+  command => 'git pull',
+  cwd     => '/all_code/Application',
+  timeout => 60,
+  tries   => 3,
+  require => Exec['Checkout the Rizzoma master branch']
+}
+
