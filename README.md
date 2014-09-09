@@ -13,7 +13,7 @@ This set of scripts builds on the [Rizzoma Collaboration Platform](https://githu
 
 ####Run
 
-    git clone
+    git clone https://github.com/JonTheNiceGuy/rizzoma_skeleton.git
     git submodule update --init
     cd Vagrant
     vagrant up
